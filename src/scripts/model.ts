@@ -147,7 +147,7 @@ export function CreateSkybox(): Model {
           usage: DataUsage.position
         }
       ],
-      data: [
+      data: [ //MJ: skybox = [-1, 1]^3 with the center at (0,0,0)
         // Back face
         -1.0, -1.0, -1.0, //0
         -1.0,  1.0, -1.0, //1
@@ -254,7 +254,8 @@ export function CreateCube(): Model {
         }
       ],
       data: [
-        0,  1,  2,      0,  2,  3,    // front
+        0,  1,  2,      0,  2,  3,    // front: consits of two triangles, one = 0,  1,  2; the other = 0,  2,  3;
+                                      // 0,1,2 are indices to the vertex in the mesh
         4,  5,  6,      4,  6,  7,    // back
         8,  9,  10,     8,  10, 11,   // top
         12, 13, 14,     12, 14, 15,   // bottom

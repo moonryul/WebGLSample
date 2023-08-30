@@ -37,9 +37,20 @@ function Main(canvasId: string) {
 
   const preCompute = new PreCompute(glSystem);
 
-  preCompute.image = "assets/Mans_Outside_2k.hdr";
+  preCompute.image = "assets/Mans_Outside_2k.hdr"; //MJ: Equi-rectangular map for the radiance map
 
-  const pbr = Utils.CreatePbrProgram(glSystem);
+  //MJ=> public set image(image: string) {
+
+  //   this.state = State.LoadRadianceTexture;
+  //   this.shpereMap = this.glSystem.CreateHDRTexture(image);
+    
+  // }
+
+  //MJ: The file format also uses a clever trick to store each floating point value, not as a 32 bit value per channel,
+  //  but 8 bits per channel using the color's alpha channel as an exponent (this does come with a loss of precision). 
+  // This works quite well, but requires the parsing program to re-convert each color to their floating point equivalent.
+
+  const pbr = Utils.CreatePbrProgram(glSystem); // MJ: The shader program for physically based rendering, using the precomputed IBL maps
   const pbrNoTextured = Utils.CreatePbrNoTexturedProgram(glSystem);
   const skybox = Utils.CreateSkyboxProgram(glSystem);
 
@@ -106,11 +117,13 @@ function Main(canvasId: string) {
     const deltaTime = now - then;
     then = now;
 
+    //MJ: Each time the example meshes for testing PBR rendering, move these objects.
     ironSphere.rotate([0.0, deltaTime * 0.1, 0.0]);
     goldSphere.rotate([0.0, deltaTime * 0.1, 0.0]);
     plasticSphere.rotate([0.0, deltaTime * 0.1, 0.0]);
 
     if (preCompute.isReady) {
+
       if (!pbrImageSetted) {
         //MJ: Set the IBL related texture maps to ironShpere, goldSphere, plasticSphere, and sphere drawables
         SetIBLTextureToDrawable(ironSphere, preCompute);
@@ -118,14 +131,28 @@ function Main(canvasId: string) {
         SetIBLTextureToDrawable(plasticSphere, preCompute);
         SetIBLTextureToDrawable(sphere, preCompute);
 
-        //MJ: Set the envMap to the box drawable 
-        box.textures.envMap = preCompute.envMap;
+        //MJ: SetIBLTextureToDrawable(ironSphere, preCompute):  
+        // Apply IBL-related texture maps to some mesh to be drawn.
+            //  drawable.textures.irradianceMap = preCompute.irrMap;
+            //  drawable.textures.prefilterMap = preCompute.filMap;
+            //  drawable.textures.brdfMap = preCompute.brdfMap;
+
+        //MJ: assign irrMap, filMap, and brdfMap to ironSphere, goldSphere, plasticSphere, sphere. 
+        //MJ: But, set only the envMap to the box drawable; for what purpose ?? 
+        box.textures.envMap = preCompute.envMap; 
         pbrImageSetted = true;
       }
 
       renderer.Clear();
       // scene 
       //MJ: renderer.Draw() executes gl.DrawElements() or gl.DrawArrays()
+      //MJ: light = positional light:
+
+      // const light: LightInfo = {
+      //   position: vec3.fromValues(-10.0, 10.0, 10.0), 
+      //   color: vec3.fromValues(300.0, 300.0, 300.0)
+      // };
+
       renderer.Draw(camera, ironSphere, light, pbr);
       renderer.Draw(camera, goldSphere, light, pbr);
       renderer.Draw(camera, plasticSphere, light, pbr);
@@ -140,7 +167,8 @@ function Main(canvasId: string) {
 
     } //if (preCompute.isReady)
      else {
-      preCompute.update();
+
+      preCompute.update(); //MJ: precompute the four IBL related maps in a state sequence
     }
 
     requestAnimationFrame(render);

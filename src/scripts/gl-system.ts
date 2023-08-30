@@ -134,6 +134,9 @@ export class GLSystem {
     return textureInfo;
   }//public CreateTexture
 
+  //MJ: CreateHDRTExture() is invoked by
+  // preCompute.image = "assets/Mans_Outside_2k.hdr"; //MJ: Equi-rectangular map for the radiance map
+  
   public CreateHDRTexture(url: string): TextureInfo {
     if (!url) {
       return null;
@@ -158,6 +161,18 @@ export class GLSystem {
       height,
     };
     const hdrImage = new HDRImage();
+
+
+    //MJ: hdrImage.onload = () => { } => 
+    //public set onload(func: () => void) {
+    //if (this.res) {
+    // this.res.onload = func;
+    // }
+     // }
+
+     //MJ: this.res (which appears to be a canvas element) exists, its onload event is set to the function you provided.
+
+     //MJ: set  a handler for the onload event of the HDRImage class. 
     hdrImage.onload = () => {
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, hdrImage.width, hdrImage.height, 
@@ -174,6 +189,7 @@ export class GLSystem {
       textureInfo.width = hdrImage.width;
       textureInfo.height = hdrImage.height;
     };
+
     hdrImage.src = url;
 
     return textureInfo;

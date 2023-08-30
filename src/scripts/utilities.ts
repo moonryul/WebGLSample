@@ -83,13 +83,14 @@ export function CreatePbrNoTexturedProgram(glSystem: GLSystem): Program {
         "u_prefilterMap": TextureType.TextureCubeMap,
         "u_brdfMap": TextureType.Texture2D
       },
-      others: {
+      others: { // "NoTextured" means that the pbr maps,  "u_albedo","u_metallic","u_roughness","u_ao" are scalars
         "u_modelMatrix": DataType.Float4x4,
         "u_normalMatrix": DataType.Float3x3,
         "u_viewProjMatrix": DataType.Float4x4,
         "u_viewPos": DataType.Float3,
         "u_lightPos": DataType.Float3,
         "u_lightColor": DataType.Float3,
+
         "u_albedo": DataType.Float3,
         "u_metallic": DataType.Float,
         "u_roughness": DataType.Float,

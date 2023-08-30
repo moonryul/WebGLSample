@@ -44,7 +44,7 @@ export class HDRImage {
     req.open("GET",url,true);
     req.send(null);
     return req;
-  }
+  }// private loadHDR( url: string, completion: (img: Uint8Array, w: number, h: number) => void ): XMLHttpRequest
 
   /** Convert a float buffer to a RGB9_E5 buffer. (ref https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_texture_shared_exponent.txt)
     * @param {Float32Array} Buffer Floating point input buffer (96 bits/pixel).
@@ -169,6 +169,7 @@ export class HDRImage {
     this.HDRdata = null;
     
     this.res = document.createElement('canvas');
+
     this.context = null;
     this.HDRD = null;
   }
@@ -201,9 +202,18 @@ export class HDRImage {
   }
 
   public get src(): string { return this.HDRsrc; }
+
   public set src(val: string) {
     this.HDRsrc=val;
+
     this.context&&this.context.clearRect(0,0,this.res.width,this.res.height);
+
+    //MJ: 
+    
+// If the file extension is .hdr, it calls the loadHDR method (which seems to load HDR data).
+//  At the end of the callback provided to loadHDR, the onload event of the canvas (this.res) is triggered (if it exists) 
+// with this line: this.res.onload&&this.res.onload(undefined);.
+
     if (val.match(/\.hdr$/i)) {
       this.loadHDR(val, (img: Uint8Array, width: number, height: number) => {
         this.HDRdata = img;
@@ -215,9 +225,17 @@ export class HDRImage {
         this.HDRD = this.context.getImageData(0, 0, width, height);
         HDRImage.rgbeToLDR(img, this.HDRexposure, this.HDRgamma, this.HDRD.data);
         this.context.putImageData(this.HDRD,0,0);
+
         this.res.onload&&this.res.onload(undefined); 
+        //MJ:
+        // The undefined argument is passed to the event handler. Typically,
+        //  when an event handler is called due to an actual event (like a browser DOM event),
+        //   it is passed an event object with details about the event.
+        //    In this case, by manually invoking the onload event handler and passing undefined,
+        //  the code indicates that no event object or specific details are being provide
       });
-    } else if (val.match(/\.rgb9_e5\.png$/i)) {
+    } 
+    else if (val.match(/\.rgb9_e5\.png$/i)) {
       var i = new Image();
       i.src = val;
       i.onload = () => {
@@ -277,7 +295,7 @@ export class HDRImage {
         this.res.onload&&this.res.onload(undefined); 
       };
     }
-  }
+  }//public set src(val: string)
 
   public get dataFloat(): Float32Array { return HDRImage.rgbeToFloat(this.HDRdata); }
   public get dataRGBE(): Uint8Array { return this.HDRdata; }
@@ -300,7 +318,7 @@ export class HDRImage {
       }
     }
     return result;
-  }
+  }// public DataFloat(flipY: boolean = false): Float32Array 
 
   public ToHDRBlob(cb: (result: Blob | null) => void, m: string, q:any) {
     // Array to image.. slightly more involved.  
@@ -310,6 +328,7 @@ export class HDRImage {
       gl.compileShader(shader);
       return shader;
     };
+
     const createProgram = (gl: WebGLRenderingContext, vertexShaderSource: string, fragmentShaderSource: string): WebGLProgram => {
         const program = gl.createProgram();
         let vs,fs;
@@ -318,6 +337,7 @@ export class HDRImage {
         gl.linkProgram(program); gl.deleteShader(vs); gl.deleteShader(fs);
         return program;
     };
+
     var ar = (m && m.match(/rgb9_e5/i)) ? new Uint8Array( HDRImage.floatToRgb9_e5(HDRImage.rgbeToFloat(this.HDRdata)).buffer ) : new Uint8Array(this.HDRdata.buffer);
     var vs2='precision highp float;\nattribute vec3 position;\nvarying vec2 tex;\nvoid main() { tex = position.xy/2.0+0.5; gl_Position = vec4(position, 1.0); }';
     var fs2='precision highp float;\nprecision highp sampler2D;\nuniform sampler2D tx;\nvarying vec2 tex;\nvoid main() { gl_FragColor = texture2D(tx,tex); }';
@@ -349,5 +369,5 @@ export class HDRImage {
     gl.deleteProgram(program);
 
     if (cb) return c.toBlob(cb); 
-  }
+  }//public ToHDRBlob(cb: (result: Blob | null) => void, m: string, q:any)
 }

@@ -22,6 +22,7 @@ export class Drawable {
   private _isDirty: boolean;
 
   constructor(model: Model, glSystem: GLSystem) {
+    
     this._position = vec3.fromValues(0.0, 0.0, 0.0);
     this._rotation = vec3.fromValues(0.0, 0.0, 0.0);
     this._scale = vec3.fromValues(1.0, 1.0, 1.0);
