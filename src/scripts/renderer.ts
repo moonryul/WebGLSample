@@ -10,12 +10,16 @@ export class Renderer {
 
   public constructor(private glSystem: GLSystem) { }
 
+  //MJ:  this.SetupOtherUniforms(camera, drawable, light, program) is called in Draw() method:
   private SetupOtherUniforms(camera: Camera, drawable: Drawable, light: LightInfo, program: Program): void {
+
     if (!camera || !drawable || !program) {
       return;
     }
 
     const gl = this.glSystem.context;
+
+    //MJ: Set the Uniform variables of program
     _.map(program.uniformNames, (name: string) => {
       const id = name.substring(2);
 
@@ -93,9 +97,11 @@ export class Renderer {
         console.error("Uniform " + id + " not found in drawable!");
       }
     });
-  }
+    // MJ: Set the Uniform variables of program
+  }//private SetupOtherUniforms
 
   public Clear() {
+
     const gl = this.glSystem.context;
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
@@ -123,9 +129,10 @@ export class Renderer {
     if (!program.CheckAttribLocation(vertexInfo.layouts)) {
       console.error("Check drawable vertex info failed!");
     }
+
     gl.bindVertexArray(vertexInfo.vao);
 
-    // set textures
+    // set textures to program
     _.map(program.textureNames, (id: string) => {
       const name = id.substring(2);
       const textureInfo = drawable.textures[name];
@@ -156,7 +163,7 @@ export class Renderer {
       gl.drawArrays(mode, first, vertexCount);
     }
 
-    gl.bindVertexArray(null);
-  }
+    gl.bindVertexArray(null); // MJ: reset gl.bindVertexArray(vertexInfo.vao);
+  }//public Draw(camera: Camera, drawable: Drawable, light: LightInfo, program: Program)
 
-}
+} // export class Renderer

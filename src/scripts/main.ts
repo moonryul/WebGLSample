@@ -12,6 +12,7 @@ function SetIBLTextureToDrawable(drawable: Drawable, preCompute: PreCompute) {
     return;
   }
 
+  //MJ: Apply IBL-related texture maps to some mesh to be drawn.
   drawable.textures.irradianceMap = preCompute.irrMap;
   drawable.textures.prefilterMap = preCompute.filMap;
   drawable.textures.brdfMap = preCompute.brdfMap;
@@ -19,6 +20,8 @@ function SetIBLTextureToDrawable(drawable: Drawable, preCompute: PreCompute) {
 
 function Main(canvasId: string) {
   const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+  //MJ: At this context, document refer to the html document in which main.ts is mentioned
+
   const gl = canvas.getContext("webgl2");
   if (!gl) {
     alert("Unable to initialize WebGL. Your browser or machine may not support it.");
@@ -30,9 +33,10 @@ function Main(canvasId: string) {
     return;
   }
 
-  const renderer = new Renderer(glSystem);
+  const renderer = new Renderer(glSystem); //MJ: renderer.Draw() executes gl.DrawElements() or gl.DrawArrays()
 
   const preCompute = new PreCompute(glSystem);
+
   preCompute.image = "assets/Mans_Outside_2k.hdr";
 
   const pbr = Utils.CreatePbrProgram(glSystem);
@@ -48,9 +52,11 @@ function Main(canvasId: string) {
   camera.HandleMouseInput(canvas);
 
   const goldSphere = Utils.CreateGoldenSphere(glSystem);
+   //MJ: =>  const sphere = new Drawable(sphereModel, glSystem);
   const plasticSphere = Utils.CreatePlasticSphere(glSystem);
   const ironSphere = Utils.CreateIronSphere(glSystem);
   const sphere = Utils.CreateNoTexturedSphere(glSystem);
+
   const box = new Drawable(CreateSkybox(), glSystem);
 
   goldSphere.move([-1.1, 1.1, -8.0]);
@@ -60,6 +66,8 @@ function Main(canvasId: string) {
 
   // debug
   const debugTexture2D = Utils.CreateDebugTexture2DProgram(glSystem);
+
+  //MJ: create a mesh to be drawn on the glSystem
   const quad = new Drawable(CreateQuad(), glSystem);
 
   // html elements
@@ -91,7 +99,9 @@ function Main(canvasId: string) {
   // Draw the scene repeatedly
   let then = 0;
   let pbrImageSetted = false;
+
   const render = (now: number) => {
+
     now *= 0.001;  // convert to seconds
     const deltaTime = now - then;
     then = now;
@@ -102,17 +112,20 @@ function Main(canvasId: string) {
 
     if (preCompute.isReady) {
       if (!pbrImageSetted) {
+        //MJ: Set the IBL related texture maps to ironShpere, goldSphere, plasticSphere, and sphere drawables
         SetIBLTextureToDrawable(ironSphere, preCompute);
         SetIBLTextureToDrawable(goldSphere, preCompute);
         SetIBLTextureToDrawable(plasticSphere, preCompute);
         SetIBLTextureToDrawable(sphere, preCompute);
 
+        //MJ: Set the envMap to the box drawable 
         box.textures.envMap = preCompute.envMap;
         pbrImageSetted = true;
       }
 
       renderer.Clear();
       // scene 
+      //MJ: renderer.Draw() executes gl.DrawElements() or gl.DrawArrays()
       renderer.Draw(camera, ironSphere, light, pbr);
       renderer.Draw(camera, goldSphere, light, pbr);
       renderer.Draw(camera, plasticSphere, light, pbr);
@@ -125,15 +138,81 @@ function Main(canvasId: string) {
       // quad.textures.texture2D = preCompute.brdfMap;
       // renderer.Draw(camera, quad, null, debugTexture2D);
 
-    } else {
+    } //if (preCompute.isReady)
+     else {
       preCompute.update();
     }
 
     requestAnimationFrame(render);
   };
+  //def render()
 
   requestAnimationFrame(render);
 
-}
+  //MJ
+//   The requestAnimationFrame function is a native browser API for performing animations efficiently. 
+//   It takes as an argument a callback function, in this case, render, 
+//   which it schedules to be called before the next repaint or redraw of the browser's window.
+
+//   In the context of the provided code, requestAnimationFrame(render); is essentially telling the browser:
+//    "Hey, before you do your next screen redraw, please execute the render function". 
+//    This is commonly seen in the initialization of animation or game loops, 
+//   where the render function will update the scene, draw it, and then request the next frame.
+
+//   Here's what it means in the context of the provided code:
+
+// Efficient Animations: Instead of using a regular setTimeout or setInterval to run an animation loop, 
+// requestAnimationFrame is designed to be more efficient. It can sync with the refresh rate of the device's display, 
+// typically 60Hz (but it may vary). This results in smoother animations.
+
+// Callback Execution: When requestAnimationFrame(render); is called, the render function will be executed
+//  before the next redraw of the screen. This is typically used in animation loops.
+//   For instance, if you're animating a game or a visual simulation in a browser,
+//    you might find the render function itself calling requestAnimationFrame again, creating a loop.
+
+// Paused in Background: Another advantage of requestAnimationFrame is 
+// that it's paused when the browser tab is not active, ensuring that
+//  unnecessary computations aren't being done in the background, which can be a wasteful use of resources.
+
+// Optimization: The browser can optimize concurrent animations to batch them together,
+//  resulting in less overall work and smoother animations.
+
+} // function Main(canvasId: string)
+
 
 Main("glCanvas");
+//MJ: THe main entry point of the main.ts; 
+//  It is assumed that canvas id "glCanvas" is defined in the html document in which
+// main.ts is defined.
+//  <body>
+//        <canvas id="glCanvas" width="800" height="600"></canvas>
+
+// from index.html:
+
+// <!DOCTYPE html>
+// <html>
+//     <head>
+//         <meta charset="UTF-8" />
+//         <title>WebGL Sample</title>
+//         <link rel="stylesheet" href="sample.css" type="text/css">
+//     </head>
+//     <body>
+//         <canvas id="glCanvas" width="800" height="600"></canvas>
+//         <div class="slidecontainer">
+//             <div>Metallic:</div>
+//             <input type="range" min="1" max="100" value="50" class="slider" id="metallic">
+//             <br/>
+//             <div>Roughness:</div>
+//             <input type="range" min="1" max="100" value="50" class="slider" id="roughness">
+//             <br/>
+//             <div>AO:</div>
+//             <input type="range" min="1" max="100" value="50" class="slider" id="ao">
+//             <br/>
+//             <div>Albedo:</div>
+//             <input type="color" value="#ffffff" class="picker" id="albedo">
+//             <br/>
+//         </div>
+//         <script src="bundle.js"></script>
+// MJ:   // MJ: src/scripts/main.ts' is bundled into bundle.js, and main.ts refers to "glCanvas" as the main DOM element to render on
+//     </body>
+// </html>

@@ -132,7 +132,7 @@ export class GLSystem {
     image.src = url;
 
     return textureInfo;
-  }
+  }//public CreateTexture
 
   public CreateHDRTexture(url: string): TextureInfo {
     if (!url) {
@@ -177,7 +177,7 @@ export class GLSystem {
     hdrImage.src = url;
 
     return textureInfo;
-  }
+  }//public CreateHDRTexture
 
   private LoadShader(source: string, type: number): WebGLShader {
     const gl = this.gl;
@@ -196,7 +196,7 @@ export class GLSystem {
     }
 
     return shader;
-  }
+  }//private LoadShader
 
   public CreateProgram(vsSource: string, fsSource: string, macros: string[]): WebGLProgram {
     const gl = this.gl;
@@ -226,7 +226,7 @@ export class GLSystem {
     }
 
     return shaderProgram;
-  }
+  }//public CreateProgram
 
   public CreateProgramFromFile(vsFile: string, fsFile: string, macros: string[], complete: (program: WebGLProgram) => void): void {
     const vertDeferred = $.ajax({
@@ -249,7 +249,7 @@ export class GLSystem {
       const program = this.CreateProgram(vsSource[0], fsSource[0], macros);
       complete && complete(program);
     });
-  }
+  }//   public CreateProgramFromFile
 
   public CreateBufferObject(data: number[], type: DataType, isElement: boolean = false): WebGLBuffer {
     if (!data) {
@@ -279,9 +279,11 @@ export class GLSystem {
         console.error("CreateBufferObject: invalid buffer type " + type);
         break;
     }
+
     gl.bindBuffer(target, null);
+
     return buffer;
-  }
+  }//  public CreateBufferObject
 
   public CreateVertexInfo(vertices: Data, indices: Data | null): VertexInfo {
     if (!vertices || !vertices.data) {
@@ -291,18 +293,108 @@ export class GLSystem {
     const gl = this.gl;
 
     const vbo = this.CreateBufferObject(vertices.data, DataType.Float, false);
+    //MJ: You can think of a VBO as an array in GPU memory where you store vertex-related data.
     const ebo = (indices ? this.CreateBufferObject(indices.data, DataType.Int, true): null);
     const vao = gl.createVertexArray();
+    //MJ: A VAO is an object that encapsulates the setup of all the vertex data. It essentially saves 
+    // the "state" of all the vertex attribute pointers, buffer bindings, and other related data.
+    //, a VBO directly holds the data (like vertex positions or colors), 
+    //while a VAO saves the configuration or state of how that data will be used in rendering.
 
     // setup vertex array
     gl.bindVertexArray(vao);
+    //MJ => // Generate a VAO
+      //        glGenVertexArrays(1, &vertexArrayID);
+      //        glBindVertexArray(vertexArrayID);  
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+
+//MJ: A VAO references one or more VBOs. When a VAO is bound, OpenGL uses the VBOs associated with it.
+//When setting up vertex attributes in OpenGL, you'll often deal with different kinds of vertex data:
+
+// Vertex positions
+// Texture coordinates (UVs)
+// Normals
+// Tangents
+// Vertex colors
+// And potentially more, depending on your application's needs
+// Each of these can be stored in a separate VBO. When you set up a VAO, 
+// you're effectively binding one or more VBOs
+//  and then specifying how the data in those VBOs should be interpreted
+
+//MJ: Aha. But when you use a single buffer to store position, tex coords, normal map, then you need to specify the offset explicitly?
+//When using a single buffer to store multiple types of vertex attributes (like positions, texture coordinates, and normals) in an interleaved fashion, the offset and stride become essential for informing OpenGL how to interpret the buffer's data correctly.
+
+// To illustrate, let's assume the buffer's data is laid out as follows for each vertex:
+// Position TexCoord Normal Position TexCoord Normal ...
+
+// Here's how you would set up the vertex attribute pointers with interleaved data:
+
+// // Assuming these sizes for each attribute
+// GLsizei posSize = 3 * sizeof(float);
+// GLsizei texCoordSize = 2 * sizeof(float);
+// GLsizei normalSize = 3 * sizeof(float);
+
+// // Stride is the total size of all attributes combined for a single vertex
+// GLsizei stride = posSize + texCoordSize + normalSize;
+
+// // Bind the VAO
+// glBindVertexArray(vertexArrayID);
+
+// // Bind the interleaved buffer
+// glBindBuffer(GL_ARRAY_BUFFER, interleavedBufferID);
+
+// // Set the position attribute pointer
+// glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+// glEnableVertexAttribArray(0);
+
+// // Set the texture coordinate attribute pointer. Note the offset!
+// glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(posSize));
+// glEnableVertexAttribArray(1);
+
+// // Set the normal attribute pointer. Note the offset!
+// glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void*)(posSize + texCoordSize));
+// glEnableVertexAttribArray(2);
 
     const sizeOfFloat = 4;
     // calculate stride
+
+    //MJ:
+
+  //   vertices: {
+  //     layouts: [ // layouts represents how vertex attributes, position, normal, texCoord, are arranged.
+  //       {
+  //         type: DataType.Float3,
+  //         usage: DataUsage.position
+  //       }, {
+  //         type: DataType.Float3,
+  //         usage: DataUsage.normal
+  //       }, {
+  //         type: DataType.Float2,
+  //         usage: DataUsage.texCoord
+  //       }
+  //     ],
+  //     data: vertices
+  //   },
+  //   indices: {
+  //     layouts: [
+  //       {
+  //         type: DataType.Int,
+  //         usage: DataUsage.index
+  //       }
+  //     ],
+  //     data: indices
+  //   },
+  //   primitive: PrimitiveMode.TriangleStrip,
+  // };
+
+
     let stride = 0;
-    for (let i = 0; i < vertices.layouts.length; ++i) {
+
+    //MJ: find the stride of a single vertex by using the layouts of each attribute of the vertex 
+    //MJ: vertices.layouts => All the vertices of a mesh has the same layouts.
+    for (let i = 0; i < vertices.layouts.length; ++i) { //MJ:  vertices.layouts.length = 3 = list of three elements
       const layout = vertices.layouts[i];
+
       switch(layout.type) {
         case DataType.Float: stride += sizeOfFloat; break;
         case DataType.Float2: stride += 2 * sizeOfFloat; break;
@@ -310,13 +402,34 @@ export class GLSystem {
         case DataType.Float4: stride += 4 * sizeOfFloat; break;
         default: console.error("Invalod layout data type in vertices, type:" + layout.type);
       }
+
     }
 
+     //MJ:
+      // "stride" refers to the number of bytes between the beginning of one vertex 
+      // and the beginning of the next vertex in a buffer of vertex data.
+      //MJ: To illustrate with a simple example:
+
+      // Imagine a vertex has a 3D position (3 floats) and a color (4 floats).
+      // Each float is 4 bytes.
+      // Thus, the stride would be (3 + 4) * 4 = 28 bytes.
+
+
     let offset = 0;
+
     for (let i = 0; i < vertices.layouts.length; ++i) {
+      //MJ: i refer to each attribute of the vertex
       const layout = vertices.layouts[i];
       gl.enableVertexAttribArray(layout.usage);
+      //MJ
+      // Each of these attributes can be thought of as a "channel" of data that you're passing to the GPU.
+      //  Before you use or reference these channels in your shaders, you need to enable them.
+      //  That's what gl.enableVertexAttribArray(...); does.
+
+      //  By enabling an attribute array using its index, you're essentially telling the GPU:
+      //   "Hey, I'm going to be passing data for this attribute, so please be prepared to use it."
       let size = 0;
+
       switch(layout.type) {
         case DataType.Float: size = 1; break;
         case DataType.Float2: size = 2; break;
@@ -324,10 +437,32 @@ export class GLSystem {
         case DataType.Float4: size = 4; break;
         default: console.error("Invalod layout data type in vertices, type:" + layout.type);
       }
+
       gl.vertexAttribPointer(layout.usage, size, gl.FLOAT, false, stride, offset);
+      //MJ: layout.usage =0 for position attribute, 1 for texture coordinates, 2 for normal maps
+
+// MJ: offset:  The offset tells the GPU, "Start reading this particular attribute this many bytes into the buffer."
+
+// Let's break this down with a simple example:
+
+// Imagine you have a buffer that stores data for each vertex in the following format: [position, color, texture coordinates].
+
+// Each position is 3 floats (3D coordinates).
+// Each color is 4 floats (RGBA values).
+// Each texture coordinate is 2 floats (u, v).
+// If you were setting the attribute pointer for:
+
+// Position: The offset would be 0. Because positions start right at the beginning of each vertex's data.
+// Color: The offset would be the size of the position data. Since positions are 3 floats, and each float is 4 bytes,
+//  the offset for color would be 3 * 4 = 12 bytes.
+// Texture Coordinates: The offset would be the size of the position and color data combined. 
+// This would be (3 + 4) * 4 = 28 bytes.
+// In the provided code, the offset is incremented in the loop over vertices.layouts to account 
+// for the total size of all previous attrib
+     
 
       offset += size * sizeOfFloat;
-    }
+    } //  for (let i = 0; i < vertices.layouts.length; ++i) 
 
     if (ebo) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
@@ -339,7 +474,7 @@ export class GLSystem {
     const layouts = vertices.layouts;
 
     return {vao, vbo, ebo, count, layouts };
-  }
+  }//public CreateVertexInfo
 
 
   public CheckBindedFramebufferStatus(): boolean {
@@ -358,7 +493,7 @@ export class GLSystem {
     }
 
     return isSuccess;
-  }
+  }//public CheckBindedFramebufferStatus()
 
   public CheckError(): boolean {
     const gl = this.gl;

@@ -90,8 +90,9 @@ export class PreCompute {
     this.captureCBO = null;
     this.captureDBO = null;
 
+    //MJ: create the four shader programs for rendering the IBL related maps  
     this.PrepareRenderObjects();
-  }
+  }//public constructor(private glSystem: GLSystem)
 
   public get isReady(): boolean { return (this.state === State.Finished); }
 
@@ -136,11 +137,13 @@ export class PreCompute {
     this.shpereMap = this.glSystem.CreateHDRTexture(image);
   }
 
+  //MJ: Pre-compute all the IBL related maps in a state sequence
   public update() {
+
     switch (this.state) {
       case State.LoadRadianceTexture: {
         if (this.shpereMap && this.shpereMap.texture
-            && this.rad2envProgram.isReady) {
+            && this.rad2envProgram.isReady) { // MJ: check if the shader program for rendering EnvCubeMap is ready
           this.RenderToEnvCubemap();
         }
         break;
